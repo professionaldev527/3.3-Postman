@@ -1,0 +1,44 @@
+name: Node.js CI
+
+on:
+  push:
+    branches: ["main"]
+  pull_request:
+    branches: ["main"]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    strategy:
+      matrix:
+        node-version: [18.x, 20.x, 22.x]
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node-version }}
+          cache: "npm"
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Start server and run tests
+        run: |
+          node index.js &
+          sleep 5
+          # Test GET /
+          curl --fail http://localhost:3000/ -o /dev/null -w "%{http_code}" | grep 200
+          # Test POST /register
+          curl -X POST --fail http://localhost:3000/register -o /dev/null -w "%{http_code}" | grep 201
+          # Test PUT /user/angela
+          curl -X PUT --fail http://localhost:3000/user/angela -o /dev/null -w "%{http_code}" | grep 200
+          # Test PATCH /user/angela
+          curl -X PATCH --fail http://localhost:3000/user/angela -o /dev/null -w "%{http_code}" | grep 200
+          # Test DELETE /user/angela
+          curl -X DELETE --fail http://localhost:3000/user/angela -o /dev/null -w "%{http_code}" | grep 200
+          kill $!
